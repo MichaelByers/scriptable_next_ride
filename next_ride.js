@@ -10,6 +10,7 @@ let config = {
     direction: 'Southbound',
     branch: 'E'
 };
+const MINUTE = 60000;
 // setup display
 let stack = w.addStack();
 stack.centerAlignContent();
@@ -52,14 +53,16 @@ if(max > 3) {
 //Name
 stack = w.addStack();
 stack.centerAlignContent();
-stack.addText(stopName);
+let stopLabel = stack.addText(stopName);
+stopLabel.textColor = Color.black();
+stack.addSpacer(10);
+
 //Trips
 for(let i=0; i<max; i++) {
     let df = new DateFormatter();
     df.dateFormat = 'h:mm';
     let sTime = df.string(new Date(timeTable[i].sTime));
     let pTime = null;
-    let dTime = null;
     let dTimeStr = "On Time";
     stack = w.addStack();
     stack.centerAlignContent();
@@ -68,27 +71,26 @@ for(let i=0; i<max; i++) {
         let status = stack.addText(timeTable[i].status);
         status.textColor = Color.red();
     } else {
-        stack.addText(sTime);
+        let timeLabel = stack.addText(sTime);
+        timeLabel.textColor = Color.black();
         if(timeTable[i].pTime){
             pTime = df.string(new Date(timeTable[i].pTime));
-            if(timeTable[i].pTime == timeTable[i].sTime){
-                dTimeStr = 'On Time'
+            // if delta is less than a minute, it's on time
+            if(Math.abs(timeTable[i].pTime - timeTable[i].sTime) < MINUTE) {
+                dTimeStr = '  On Time'
                 let label = stack.addText(dTimeStr);
                 label.textColor = Color.green();
             } else if(timeTable[i].pTime > timeTable[i].sTime){
-                dTime = Math.trunc((timeTable[i].pTime - timeTable[i].sTime)/60000);
-                dTimeStr = ":"+ dTime + " late";
+                dTimeStr = "  :"+ calculateDelta(timeTable[i].pTime,timeTable[i].sTime) + " late";
                 let label = stack.addText(dTimeStr);
                 label.textColor = Color.red();
             } else {
-                dTime = Math.trunc((timeTable[i].sTime - timeTable[i].pTime)/60000);
-                dTimeStr = ":"+ dTime + " early";
+                dTimeStr = "  :"+ calculateDelta(timeTable[i].sTime, timeTable[i].pTime) + " early";
                 let label = stack.addText(dTimeStr);
                 label.textColor = Color.green();
             }
         }
     }
-    stack.addSpacer(10);
 }
 
 // display
@@ -120,4 +122,13 @@ async function get(opts){
     }
 }
 
-
+function calculateDelta(a,b){
+    let deltaStr = '';
+    let delta = Math.trunc((a - b) / MINUTE);
+    if(delta < 10) {
+        deltaStr = '0' + delta.toString();
+    } else {
+        deltaStr = delta.toString();
+    }
+    return deltaStr;
+}
